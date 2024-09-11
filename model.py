@@ -2,17 +2,19 @@ from pyomo.environ import (
     AbstractModel,
     Binary,
     Constraint,
+    Expression,
+    InequalityExpression,
+    Objective,
+    minimize,
     NonNegativeReals,
     Param,
-    RangeSet,
     Set,
     Var,
 )
-from pyomo.core.expr.relational_expr import EqualityExpression, InequalityExpression
 
 
 def get_abstract_model() -> AbstractModel:
-    model = AbstractModel(name='sudoku')
+    model = AbstractModel(name='diet')
 
     # Sets: Indexes for parameters, variables and other sets.
     model.days = Set(
@@ -23,11 +25,6 @@ def get_abstract_model() -> AbstractModel:
         name='meals',
         doc='Meal types that the diet includes per each day.',
     )
-    # model.meals_day = Set(    # If we wanted to allow the user which meals to include.
-    #     model.days,   # Indexed by meals maybe? And then binary?
-    #     name='meals_day',
-    #     doc='Meals of each day.',
-    # )
     model.dishes = Set(
         name='dishes',
         doc='Dishes names that can be included in the diet.',
@@ -35,44 +32,44 @@ def get_abstract_model() -> AbstractModel:
 
     # Parameters: Values that you know prior to solving the problem, and will not change
     # during the execution.
-    model.cal_min = Param(
+    model.calories_min = Param(
         name='calories_min',
-        doc='Minimum number of calories of the diet [kcal].',
+        doc='Minimum number of calories per day [kcal].',
         domain=NonNegativeReals
     )
-    model.cal_max = Param(
+    model.calories_max = Param(
         name='calories_max',
-        doc='Maximum number of calories of the diet [kcal].',
+        doc='Maximum number of calories per day [kcal].',
         domain=NonNegativeReals
     )
-    model.prote_min = Param(
+    model.protein_min = Param(
         name='protein_min',
-        doc='Minimum amount of protein that the diet can contain [g].',
+        doc='Minimum amount of protein that a day can contain [g].',
         domain=NonNegativeReals
     )
-    model.prote_max = Param(
+    model.protein_max = Param(
         name='protein_max',
-        doc='Maximum amount of protein that the diet can contain [g].',
+        doc='Maximum amount of protein that a day can contain [g].',
         domain=NonNegativeReals
     )
     model.carbs_min = Param(
         name='carbs_min',
-        doc='Minimum amount of carbs that the diet can contain [g].',
+        doc='Minimum amount of carbs that a day can contain [g].',
         domain=NonNegativeReals
     )
     model.carbs_max = Param(
         name='carbs_max',
-        doc='Maximum amount of carbs that the diet can contain [g].',
+        doc='Maximum amount of carbs that a day can contain [g].',
         domain=NonNegativeReals
     )
     model.fat_min = Param(
         name='fat_min',
-        doc='Minimum amount of fat that the diet can contain [g].',
+        doc='Minimum amount of fat that a day can contain [g].',
         domain=NonNegativeReals,
     )
     model.fat_max = Param(
         name='fat_max',
-        doc='Maximum amount of fat that the diet can contain [g].',
+        doc='Maximum amount of fat that a day can contain [g].',
         domain=NonNegativeReals,
     )
     model.vegetarian = Param(
@@ -86,19 +83,20 @@ def get_abstract_model() -> AbstractModel:
         domain=Binary,
     )
 
-    model.meal_dish = Param(
+    model.suitable = Param(
         model.dishes,
-        name='meal_dish',
-        doc='Meal to which each dish is suitable for.',
-        domain=model.meals,
+        model.meals,
+        name='suitable',
+        doc='Equals 1 if the dish is suitable for the meal and 0 otherwise.',
+        domain=Binary,
     )
-    model.cal_dish = Param(
+    model.calories_dish = Param(
         model.dishes,
         name='calories_dish',
         doc='Calories of each dish [kcal].',
         domain=NonNegativeReals,
     )
-    model.prote_dish = Param(
+    model.protein_dish = Param(
         model.dishes,
         name='protein_dish',
         doc='Protein that each dish contains [g].',
@@ -128,87 +126,283 @@ def get_abstract_model() -> AbstractModel:
         doc='Equals 1 if the dish is vegan and 0 otherwise.',
         domain=Binary,
     )
+    model.cost_dish = Param(
+        model.dishes,
+        name='cost_dish',
+        doc='Cost per serving of the dish [€].',
+        domain=NonNegativeReals,
+    )
 
     # Variables: Values defined while solving the problem to get the best solution.
     model.use_dish_meal_day = Var(
-        model.meals_day,
         model.dishes,
+        model.meals,
+        model.days,
         name='use_dish_meal_day',
-        doc='Binary variable: 1 if dish is used, 0 otherwise.',
+        doc='Equals 1 if a dish is used in a meal of a day and 0 otherwise.',
         domain=Binary,
     )
 
     # Constraints: Requirements and forbidden actions to achieve a correct solution.
-    model.constraint_dishes_per_meal = Constraint(
-        model.meals_day,
-        name='dishes_per_meal',
-        doc=constraint_dishes_per_meal.__doc__,
-        rule=constraint_dishes_per_meal,
+    model.constraint_minimum_dishes_per_meal = Constraint(
+        model.meals,
+        model.days,
+        name='constraint_minimum_dishes_per_meal',
+        doc=constraint_minimum_dishes_per_meal.__doc__,
+        rule=constraint_minimum_dishes_per_meal,
+    )
+    model.constraint_maximum_dishes_per_meal = Constraint(
+        model.meals,
+        model.days,
+        name='constraint_maximum_dishes_per_meal',
+        doc=constraint_maximum_dishes_per_meal.__doc__,
+        rule=constraint_maximum_dishes_per_meal,
+    )
+    model.constraint_suit_meal_type = Constraint(
+        model.dishes,
+        model.meals,
+        model.days,
+        name='constraint_suit_meal_type',
+        doc=constraint_suit_meal_type.__doc__,
+        rule=constraint_suit_meal_type,
+    )
+    model.constraint_vegetarianism = Constraint(
+        model.dishes,
+        model.meals,
+        model.days,
+        name='constraint_vegetarianism',
+        doc=constraint_vegetarianism.__doc__,
+        rule=constraint_vegetarianism,
+    )
+    model.constraint_veganism = Constraint(
+        model.dishes,
+        model.meals,
+        model.days,
+        name='constraint_veganism',
+        doc=constraint_veganism.__doc__,
+        rule=constraint_veganism,
+    )
+    model.constraint_minimum_calories_per_day = Constraint(
+        model.days,
+        name='constraint_minimum_calories_per_day',
+        doc=constraint_minimum_calories_per_day.__doc__,
+        rule=constraint_minimum_calories_per_day,
+    )
+    model.constraint_maximum_calories_per_day = Constraint(
+        model.days,
+        name='constraint_maximum_calories_per_day',
+        doc=constraint_maximum_calories_per_day.__doc__,
+        rule=constraint_maximum_calories_per_day,
+    )
+    model.constraint_minimum_protein_per_day = Constraint(
+        model.days,
+        name='constraint_minimum_protein_per_day',
+        doc=constraint_minimum_protein_per_day.__doc__,
+        rule=constraint_minimum_protein_per_day,
+    )
+    model.constraint_maximum_protein_per_day = Constraint(
+        model.days,
+        name='constraint_maximum_protein_per_day',
+        doc=constraint_maximum_protein_per_day.__doc__,
+        rule=constraint_maximum_protein_per_day,
+    )
+    model.constraint_minimum_carbs_per_day = Constraint(
+        model.days,
+        name='constraint_minimum_carbs_per_day',
+        doc=constraint_minimum_carbs_per_day.__doc__,
+        rule=constraint_minimum_carbs_per_day,
+    )
+    model.constraint_maximum_carbs_per_day = Constraint(
+        model.days,
+        name='constraint_maximum_carbs_per_day',
+        doc=constraint_maximum_carbs_per_day.__doc__,
+        rule=constraint_maximum_carbs_per_day,
+    )
+    model.constraint_minimum_fat_per_day = Constraint(
+        model.days,
+        name='constraint_minimum_fat_per_day',
+        doc=constraint_minimum_fat_per_day.__doc__,
+        rule=constraint_minimum_fat_per_day,
+    )
+    model.constraint_maximum_fat_per_day = Constraint(
+        model.days,
+        name='model.constraint_maximum_fat_per_day',
+        doc=constraint_maximum_fat_per_day.__doc__,
+        rule=constraint_maximum_fat_per_day,
     )
 
     # Objective: Function of variables that returns a value to be maximized or minimized.
-    # There is no function to maximize or minimize, as one solution is no “better” than
-    # another. Each solution that fulfills all the constraints is equally valid/optimal.
-    # model.objective_function = 0
+    model.objective_function = Objective(
+        name='objective_function',
+        doc='Minimize the total cost of the diet.',
+        rule=diet_cost,
+        sense=minimize,
+    )
 
     return model
-
-
-def _get_num_of_dishes_of_meal(meal: str):
-    # ToDo: This is not correct!!!! Meal is not enough, index should be also by day...
-    pass
 
 
 # Constraints definition
 def constraint_minimum_dishes_per_meal(
         model: AbstractModel,
-        meal: str,
+        meal,
+        day,
 ) -> InequalityExpression:
     """Each meal has at least 1 dish."""
-    dishes_per_meal = sum(model.use_dish_meal_day[meal, dish] for dish in model.dishes)
+    dishes_per_meal = _get_num_of_dishes_in_meal(model, meal, day)
     return dishes_per_meal >= 1
 
 
-def constraint_value_used_once_per_column(
+def constraint_maximum_dishes_per_meal(
         model: AbstractModel,
-        column: str,
-        value: str,
-) -> EqualityExpression:
-    """In a column, each value must be used exactly once."""
-    values_per_row = (
-        sum(model.place_value_square[row, column, value] for row in model.rows)
-    )
-    return values_per_row == 1
+        meal,
+        day,
+) -> InequalityExpression:
+    """Each meal has at most 3 dishes."""
+    dishes_per_meal = _get_num_of_dishes_in_meal(model, meal, day)
+    return dishes_per_meal <= 1
 
 
-def constraint_values_used_once_per_subgrid(
+def constraint_suit_meal_type(
         model: AbstractModel,
-        row_subgrid: int,
-        column_subgrid: int,
-        value: int,
-) -> EqualityExpression:
-    """In a subgrid, each value must be used exactly once."""
-    n = model.n.value
-    values_per_subgrid = (
-        sum(
-            model.place_value_square[i, j, value]
-            for i in range(row_subgrid * n, (row_subgrid + 1) * n)
-            for j in range(column_subgrid * n, (column_subgrid + 1) * n)
-        )
-    )
-    return values_per_subgrid == 1
+        dish,
+        meal,
+        day,
+) -> InequalityExpression:
+    """Dishes can only be selected for the meal type they are suitable for."""
+    return model.use_dish_meal_day[dish, meal, day] <= model.suitable[dish, meal]
 
 
-def constraint_one_value_per_square(
+def constraint_vegetarianism(
         model: AbstractModel,
-        row: int,
-        column: int
-) -> EqualityExpression:
-    """Each square must have exactly one value."""
-    values_per_square = (
-            sum(
-                model.place_value_square[row, column, value]
-                for value in model.grid_values
-            )
+        dish,
+        meal,
+        day,
+) -> InequalityExpression:
+    """Respect vegetarian diet.
+
+    If the diet is vegetarian, all dishes must be vegetarian. If the diet is not
+    vegetarian, dishes can be either vegetarian or not.
+
+    Note
+    ----
+    It is assumed that all vegan dishes are also vegetarian.
+    """
+    return (
+        model.use_dish_meal_day[dish, meal, day] * (1 - model.vegetarian_dish[dish])
+        <= (1 - model.vegetarian)
     )
-    return values_per_square == 1
+
+
+def constraint_veganism(
+        model: AbstractModel,
+        dish,
+        meal,
+        day,
+) -> InequalityExpression:
+    """Respect vegan diet.
+
+    If the diet is vegan, all dishes must be vegan. If the diet is not vegan, dishes can
+    be either vegan or not.
+    """
+    return (
+        model.use_dish_meal_day[dish, meal, day] * (1 - model.vegan_dish[dish])
+        <= (1 - model.vegan)
+    )
+
+
+def constraint_minimum_calories_per_day(
+        model: AbstractModel,
+        day,
+) -> InequalityExpression:
+    """Calorie count per day is lower bounded."""
+    daily_calorie_count = _get_daily_metric_count(model, day, model.calories_dish)
+    return daily_calorie_count >= model.calories_min
+
+
+def constraint_maximum_calories_per_day(
+        model: AbstractModel,
+        day,
+) -> InequalityExpression:
+    """Calorie count per day is upper bounded."""
+    daily_calorie_count = _get_daily_metric_count(model, day, model.calories_dish)
+    return daily_calorie_count <= model.calories_max
+
+
+def constraint_minimum_protein_per_day(
+        model: AbstractModel,
+        day,
+) -> InequalityExpression:
+    """Protein count per day is lower bounded."""
+    daily_protein_count = _get_daily_metric_count(model, day, model.protein_dish)
+    return daily_protein_count >= model.protein_min
+
+
+def constraint_maximum_protein_per_day(
+        model: AbstractModel,
+        day,
+) -> InequalityExpression:
+    """Protein count per day is upper bounded."""
+    daily_protein_count = _get_daily_metric_count(model, day, model.protein_dish)
+    return daily_protein_count <= model.protein_max
+
+
+def constraint_minimum_carbs_per_day(
+        model: AbstractModel,
+        day,
+) -> InequalityExpression:
+    """Carbs count per day is lower bounded."""
+    daily_carbs_count = _get_daily_metric_count(model, day, model.carbs_dish)
+    return daily_carbs_count >= model.carbs_min
+
+
+def constraint_maximum_carbs_per_day(
+        model: AbstractModel,
+        day,
+) -> InequalityExpression:
+    """Carbs count per day is upper bounded."""
+    daily_carbs_count = _get_daily_metric_count(model, day, model.carbs_dish)
+    return daily_carbs_count <= model.carbs_max
+
+
+def constraint_minimum_fat_per_day(
+        model: AbstractModel,
+        day,
+) -> InequalityExpression:
+    """Fat count per day is lower bounded."""
+    daily_fat_count = _get_daily_metric_count(model, day, model.fat_dish)
+    return daily_fat_count >= model.fat_min
+
+
+def constraint_maximum_fat_per_day(
+        model: AbstractModel,
+        day,
+) -> InequalityExpression:
+    """Fat count per day is upper bounded."""
+    daily_fat_count = _get_daily_metric_count(model, day, model.fat_dish)
+    return daily_fat_count <= model.fat_max
+
+
+# Objective function definition
+def diet_cost(model: AbstractModel) -> Expression:
+    return sum(
+        model.use_dish_meal_day[dish, meal, day] * model.cost_dish[dish]
+        for dish in model.dishes
+        for meal in model.meals
+        for day in model.days
+    )
+
+
+# Private auxiliary util functions
+def _get_num_of_dishes_in_meal(model: AbstractModel, meal, day):
+    """Returns number of dishes that have been selected for a certain meal of a day."""
+    return sum(model.use_dish_meal_day[dish, meal, day] for dish in model.dishes)
+
+
+def _get_daily_metric_count(model: AbstractModel, day, metric):
+    """Return the daily count of a certain metric (calories, protein, carb or fat)."""
+    return sum(
+        model.use_dish_meal_day[dish, meal, day] * metric[dish]
+        for dish in model.dishes
+        for meal in model.meals
+    )
