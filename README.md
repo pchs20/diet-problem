@@ -15,6 +15,8 @@ The goal of the problem is to find a combination of dishes for each mean and eac
 that minimizes the total cost, meets the daily nutritional requirements and adheres to 
 the vegetarian or vegan dietary restrictions.
 
+Find [here](modeling.pdf) the model expressed mathematically.
+
 ## Installation
 
 - Base enviornment: You should have installed Python and pip.
