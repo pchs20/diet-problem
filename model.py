@@ -12,73 +12,113 @@ from pyomo.environ import (
     Var,
 )
 
+from constants import (
+    CALORIES_DISH,
+    CALORIES_MAX,
+    CALORIES_MIN,
+    CARBS_DISH,
+    CARBS_MAX,
+    CARBS_MIN,
+    CONSTRAINT_MAXIMUM_CALORIES_PER_DAY,
+    CONSTRAINT_MAXIMUM_CARBS_PER_DAY,
+    CONSTRAINT_MAXIMUM_DISHES_PER_MEAL,
+    CONSTRAINT_MAXIMUM_FAT_PER_DAY,
+    CONSTRAINT_MAXIMUM_PROTEIN_PER_DAY,
+    CONSTRAINT_MINIMUM_CALORIES_PER_DAY,
+    CONSTRAINT_MINIMUM_CARBS_PER_DAY,
+    CONSTRAINT_MINIMUM_DISHES_PER_MEAL,
+    CONSTRAINT_MINIMUM_FAT_PER_DAY,
+    CONSTRAINT_MINIMUM_PROTEIN_PER_DAY,
+    CONSTRAINT_SUIT_MEAL_TYPE,
+    CONSTRAINT_VEGETARIANISM,
+    CONSTRAINT_VEGANISM,
+    COST_DISH,
+    DAYS,
+    DIET,
+    DISHES,
+    FAT_DISH,
+    FAT_MAX,
+    FAT_MIN,
+    MEALS,
+    OBJECTIVE_FUNCTION,
+    PROTEIN_DISH,
+    PROTEIN_MAX,
+    PROTEIN_MIN,
+    SUITABLE,
+    USE_DISH_MEAL_DAY,
+    VEGAN,
+    VEGAN_DISH,
+    VEGETARIAN,
+    VEGETARIAN_DISH
+)
+
 
 def get_abstract_model() -> AbstractModel:
-    model = AbstractModel(name='diet')
+    model = AbstractModel(name=DIET)
 
     # Sets: Indexes for parameters, variables and other sets.
     model.days = Set(
-        name='days',
+        name=DAYS,
         doc='Days of the diet.',
     )
     model.meals = Set(
-        name='meals',
+        name=MEALS,
         doc='Meal types that the diet includes per each day.',
     )
     model.dishes = Set(
-        name='dishes',
+        name=DISHES,
         doc='Dishes names that can be included in the diet.',
     )
 
     # Parameters: Values that you know prior to solving the problem, and will not change
     # during the execution.
     model.calories_min = Param(
-        name='calories_min',
+        name=CALORIES_MIN,
         doc='Minimum number of calories per day [kcal].',
         domain=NonNegativeReals
     )
     model.calories_max = Param(
-        name='calories_max',
+        name=CALORIES_MAX,
         doc='Maximum number of calories per day [kcal].',
         domain=NonNegativeReals
     )
     model.protein_min = Param(
-        name='protein_min',
+        name=PROTEIN_MIN,
         doc='Minimum amount of protein that a day can contain [g].',
         domain=NonNegativeReals
     )
     model.protein_max = Param(
-        name='protein_max',
+        name=PROTEIN_MAX,
         doc='Maximum amount of protein that a day can contain [g].',
         domain=NonNegativeReals
     )
     model.carbs_min = Param(
-        name='carbs_min',
+        name=CARBS_MIN,
         doc='Minimum amount of carbs that a day can contain [g].',
         domain=NonNegativeReals
     )
     model.carbs_max = Param(
-        name='carbs_max',
+        name=CARBS_MAX,
         doc='Maximum amount of carbs that a day can contain [g].',
         domain=NonNegativeReals
     )
     model.fat_min = Param(
-        name='fat_min',
+        name=FAT_MIN,
         doc='Minimum amount of fat that a day can contain [g].',
         domain=NonNegativeReals,
     )
     model.fat_max = Param(
-        name='fat_max',
+        name=FAT_MAX,
         doc='Maximum amount of fat that a day can contain [g].',
         domain=NonNegativeReals,
     )
     model.vegetarian = Param(
-        name='vegetarian',
+        name=VEGETARIAN,
         doc='Equals 1 if the diet is vegetarian and 0 otherwise.',
         domain=Binary,
     )
     model.vegan = Param(
-        name='vegan',
+        name=VEGAN,
         doc='Equals 1 if the diet is vegan and 0 otherwise.',
         domain=Binary,
     )
@@ -86,49 +126,49 @@ def get_abstract_model() -> AbstractModel:
     model.suitable = Param(
         model.dishes,
         model.meals,
-        name='suitable',
+        name=SUITABLE,
         doc='Equals 1 if the dish is suitable for the meal and 0 otherwise.',
         domain=Binary,
     )
     model.calories_dish = Param(
         model.dishes,
-        name='calories_dish',
+        name=CALORIES_DISH,
         doc='Calories of each dish [kcal].',
         domain=NonNegativeReals,
     )
     model.protein_dish = Param(
         model.dishes,
-        name='protein_dish',
+        name=PROTEIN_DISH,
         doc='Protein that each dish contains [g].',
         domain=NonNegativeReals,
     )
     model.carbs_dish = Param(
         model.dishes,
-        name='carbs_dish',
+        name=CARBS_DISH,
         doc='Carbs that each dish contains [g].',
         domain=NonNegativeReals,
     )
     model.fat_dish = Param(
         model.dishes,
-        name='fat_dish',
+        name=FAT_DISH,
         doc='Fat that each dish contains [g].',
         domain=NonNegativeReals,
     )
     model.vegetarian_dish = Param(
         model.dishes,
-        name='vegetarian_dish',
+        name=VEGETARIAN_DISH,
         doc='Equals 1 if the dish is vegetarian and 0 otherwise.',
         domain=Binary,
     )
     model.vegan_dish = Param(
         model.dishes,
-        name='vegan_dish',
+        name=VEGAN_DISH,
         doc='Equals 1 if the dish is vegan and 0 otherwise.',
         domain=Binary,
     )
     model.cost_dish = Param(
         model.dishes,
-        name='cost_dish',
+        name=COST_DISH,
         doc='Cost per serving of the dish [€].',
         domain=NonNegativeReals,
     )
@@ -138,7 +178,7 @@ def get_abstract_model() -> AbstractModel:
         model.dishes,
         model.meals,
         model.days,
-        name='use_dish_meal_day',
+        name=USE_DISH_MEAL_DAY,
         doc='Equals 1 if a dish is used in a meal of a day and 0 otherwise.',
         domain=Binary,
     )
@@ -147,14 +187,14 @@ def get_abstract_model() -> AbstractModel:
     model.constraint_minimum_dishes_per_meal = Constraint(
         model.meals,
         model.days,
-        name='constraint_minimum_dishes_per_meal',
+        name=CONSTRAINT_MINIMUM_DISHES_PER_MEAL,
         doc=constraint_minimum_dishes_per_meal.__doc__,
         rule=constraint_minimum_dishes_per_meal,
     )
     model.constraint_maximum_dishes_per_meal = Constraint(
         model.meals,
         model.days,
-        name='constraint_maximum_dishes_per_meal',
+        name=CONSTRAINT_MAXIMUM_DISHES_PER_MEAL,
         doc=constraint_maximum_dishes_per_meal.__doc__,
         rule=constraint_maximum_dishes_per_meal,
     )
@@ -162,7 +202,7 @@ def get_abstract_model() -> AbstractModel:
         model.dishes,
         model.meals,
         model.days,
-        name='constraint_suit_meal_type',
+        name=CONSTRAINT_SUIT_MEAL_TYPE,
         doc=constraint_suit_meal_type.__doc__,
         rule=constraint_suit_meal_type,
     )
@@ -170,7 +210,7 @@ def get_abstract_model() -> AbstractModel:
         model.dishes,
         model.meals,
         model.days,
-        name='constraint_vegetarianism',
+        name=CONSTRAINT_VEGETARIANISM,
         doc=constraint_vegetarianism.__doc__,
         rule=constraint_vegetarianism,
     )
@@ -178,62 +218,62 @@ def get_abstract_model() -> AbstractModel:
         model.dishes,
         model.meals,
         model.days,
-        name='constraint_veganism',
+        name=CONSTRAINT_VEGANISM,
         doc=constraint_veganism.__doc__,
         rule=constraint_veganism,
     )
     model.constraint_minimum_calories_per_day = Constraint(
         model.days,
-        name='constraint_minimum_calories_per_day',
+        name=CONSTRAINT_MINIMUM_CALORIES_PER_DAY,
         doc=constraint_minimum_calories_per_day.__doc__,
         rule=constraint_minimum_calories_per_day,
     )
     model.constraint_maximum_calories_per_day = Constraint(
         model.days,
-        name='constraint_maximum_calories_per_day',
+        name=CONSTRAINT_MAXIMUM_CALORIES_PER_DAY,
         doc=constraint_maximum_calories_per_day.__doc__,
         rule=constraint_maximum_calories_per_day,
     )
     model.constraint_minimum_protein_per_day = Constraint(
         model.days,
-        name='constraint_minimum_protein_per_day',
+        name=CONSTRAINT_MINIMUM_PROTEIN_PER_DAY,
         doc=constraint_minimum_protein_per_day.__doc__,
         rule=constraint_minimum_protein_per_day,
     )
     model.constraint_maximum_protein_per_day = Constraint(
         model.days,
-        name='constraint_maximum_protein_per_day',
+        name=CONSTRAINT_MAXIMUM_PROTEIN_PER_DAY,
         doc=constraint_maximum_protein_per_day.__doc__,
         rule=constraint_maximum_protein_per_day,
     )
     model.constraint_minimum_carbs_per_day = Constraint(
         model.days,
-        name='constraint_minimum_carbs_per_day',
+        name=CONSTRAINT_MINIMUM_CARBS_PER_DAY,
         doc=constraint_minimum_carbs_per_day.__doc__,
         rule=constraint_minimum_carbs_per_day,
     )
     model.constraint_maximum_carbs_per_day = Constraint(
         model.days,
-        name='constraint_maximum_carbs_per_day',
+        name=CONSTRAINT_MAXIMUM_CARBS_PER_DAY,
         doc=constraint_maximum_carbs_per_day.__doc__,
         rule=constraint_maximum_carbs_per_day,
     )
     model.constraint_minimum_fat_per_day = Constraint(
         model.days,
-        name='constraint_minimum_fat_per_day',
+        name=CONSTRAINT_MINIMUM_FAT_PER_DAY,
         doc=constraint_minimum_fat_per_day.__doc__,
         rule=constraint_minimum_fat_per_day,
     )
     model.constraint_maximum_fat_per_day = Constraint(
         model.days,
-        name='model.constraint_maximum_fat_per_day',
+        name=CONSTRAINT_MAXIMUM_FAT_PER_DAY,
         doc=constraint_maximum_fat_per_day.__doc__,
         rule=constraint_maximum_fat_per_day,
     )
 
     # Objective: Function of variables that returns a value to be maximized or minimized.
-    model.objective_function = Objective(
-        name='objective_function',
+    model.OBJECTIVE_FUNCTION = Objective(
+        name=OBJECTIVE_FUNCTION,
         doc='Minimize the total cost of the diet.',
         rule=diet_cost,
         sense=minimize,
