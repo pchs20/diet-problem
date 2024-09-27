@@ -5,6 +5,7 @@ from constants import (
     CALORIES_DISH,
     CARBS_DISH,
     COST_DISH,
+    DISHES,
     FAT_DISH,
     PROTEIN_DISH,
     SUITABLE,
@@ -12,6 +13,13 @@ from constants import (
     VEGAN_DISH,
     VEGETARIAN_DISH
 )
+
+
+def unindexed_component_to_pyomo(
+        key: str,
+        to_convert: List[str],
+) -> Dict[Optional[str], Any]:
+    return {key: {None: to_convert}}
 
 
 def dishes_to_pyomo_dict(
@@ -41,7 +49,10 @@ def dishes_to_pyomo_dict(
         ...
     }
     """
-    COMMON_COLUMNS = [
+    dishes_names = list(dishes_df.index.values)
+    dict_ = unindexed_component_to_pyomo(key=DISHES, to_convert=dishes_names)
+
+    COLUMNS_INDEXED_BY_DISH = [
         CALORIES_DISH,
         PROTEIN_DISH,
         CARBS_DISH,
@@ -50,11 +61,37 @@ def dishes_to_pyomo_dict(
         VEGAN_DISH,
         COST_DISH,
     ]
-    dict_ = {
-        param_name: dishes_df[param_name].to_dict() for param_name in COMMON_COLUMNS
-    }
+    dict_.update({
+        param_name: dishes_df[param_name].to_dict()
+        for param_name in COLUMNS_INDEXED_BY_DISH
+    })
+
+    # Parameter 'suitable' needs a special treatment.
     dict_[SUITABLE] = {
         (dish, meal): int(dishes_df.loc[dish, SUITABLE_MEAL] == meal)
         for dish in dishes_df.index for meal in meals
     }
+
+    return dict_
+
+
+def diet_info_to_pyomo_dict(diet_info_df: pd.DataFrame) -> Dict[Optional[str], Any]:
+    """Convert diet information to pyomo.
+
+    Example of extract of output:
+    {
+        'calories_min': {
+            None: 250,
+        },
+        'calories_max': {
+            None: 500,
+        },
+        'protein_min': {
+            None: 100,
+        },
+        ...
+    }
+    """
+    diet_info = diet_info_df.iloc[0]
+    dict_ = {key: {None: info} for key, info in diet_info.items()}
     return dict_

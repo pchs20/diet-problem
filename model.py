@@ -3,7 +3,6 @@ from pyomo.environ import (
     Binary,
     Constraint,
     Expression,
-    InequalityExpression,
     Objective,
     minimize,
     NonNegativeReals,
@@ -11,6 +10,7 @@ from pyomo.environ import (
     Set,
     Var,
 )
+from pyomo.core.expr.relational_expr import InequalityExpression
 
 from constants import (
     CALORIES_DISH,
