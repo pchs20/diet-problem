@@ -83,13 +83,13 @@ def get_diet_info_data() -> pd.DataFrame:
     """
     diet_information = {
         CALORIES_MIN: 100,
-        CALORIES_MAX: 150,
+        CALORIES_MAX: 1500,
         PROTEIN_MIN: 40,
-        PROTEIN_MAX: 100,
+        PROTEIN_MAX: 1000,
         CARBS_MIN: 10,
-        CARBS_MAX: 400,
+        CARBS_MAX: 4000,
         FAT_MIN: 10,
-        FAT_MAX: 400,
+        FAT_MAX: 4000,
         VEGETARIAN: 0,
         VEGAN: 0,
     }

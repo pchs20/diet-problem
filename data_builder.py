@@ -30,8 +30,10 @@ def get_problem_data() -> Dict[Optional[str], Any]:
     diet_info_dict = diet_info_to_pyomo_dict(diet_info_df)
 
     return {
-        **days_dict,
-        **meals_dict,
-        **dishes_dict,
-        **diet_info_dict,
+        None: {
+            **days_dict,
+            **meals_dict,
+            **dishes_dict,
+            **diet_info_dict,
+        }
     }

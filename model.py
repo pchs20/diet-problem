@@ -272,7 +272,7 @@ def get_abstract_model() -> AbstractModel:
     )
 
     # Objective: Function of variables that returns a value to be maximized or minimized.
-    model.OBJECTIVE_FUNCTION = Objective(
+    model.objective_function = Objective(
         name=OBJECTIVE_FUNCTION,
         doc='Minimize the total cost of the diet.',
         rule=diet_cost,
