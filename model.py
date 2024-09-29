@@ -7,6 +7,7 @@ from pyomo.environ import (
     minimize,
     NonNegativeReals,
     Param,
+    PositiveIntegers,
     Set,
     Var,
 )
@@ -24,6 +25,7 @@ from constants import (
     CONSTRAINT_MAXIMUM_DISHES_PER_MEAL,
     CONSTRAINT_MAXIMUM_FAT_PER_DAY,
     CONSTRAINT_MAXIMUM_PROTEIN_PER_DAY,
+    CONSTRAINT_MAXIMUM_SELECTIONS_PER_DISH,
     CONSTRAINT_MINIMUM_CALORIES_PER_DAY,
     CONSTRAINT_MINIMUM_CARBS_PER_DAY,
     CONSTRAINT_MINIMUM_DISHES_PER_MEAL,
@@ -36,6 +38,7 @@ from constants import (
     DAYS,
     DIET,
     DISHES,
+    DISH_SELECTIONS_MAX,
     FAT_DISH,
     FAT_MAX,
     FAT_MIN,
@@ -121,6 +124,11 @@ def get_abstract_model() -> AbstractModel:
         name=VEGAN,
         doc='Equals 1 if the diet is vegan and 0 otherwise.',
         domain=Binary,
+    )
+    model.dish_selections_max = Param(
+        name=DISH_SELECTIONS_MAX,
+        doc='Maximum of times a dish can be selected in the diet.',
+        domain=PositiveIntegers,
     )
 
     model.suitable = Param(
@@ -269,6 +277,12 @@ def get_abstract_model() -> AbstractModel:
         name=CONSTRAINT_MAXIMUM_FAT_PER_DAY,
         doc=constraint_maximum_fat_per_day.__doc__,
         rule=constraint_maximum_fat_per_day,
+    )
+    model.constraint_maximum_selections_per_dish = Constraint(
+        model.dishes,
+        name=CONSTRAINT_MAXIMUM_SELECTIONS_PER_DISH,
+        doc=constraint_maximum_selections_per_dish.__doc__,
+        rule=constraint_maximum_selections_per_dish,
     )
 
     # Objective: Function of variables that returns a value to be maximized or minimized.
@@ -421,6 +435,19 @@ def constraint_maximum_fat_per_day(
     """Fat count per day is upper bounded."""
     daily_fat_count = _get_daily_metric_count(model, day, model.fat_dish)
     return daily_fat_count <= model.fat_max
+
+
+def constraint_maximum_selections_per_dish(
+        model: AbstractModel,
+        dish,
+) -> InequalityExpression:
+    """Number of selections of a dish in the diet is upper bounded."""
+    selections_dish = sum(
+        model.use_dish_meal_day[dish, meal, day]
+        for meal in model.meals
+        for day in model.days
+    )
+    return selections_dish <= model.dish_selections_max
 
 
 # Objective function definition

@@ -11,6 +11,7 @@ from constants import (
     CARBS_MAX,
     CARBS_MIN,
     COST_DISH,
+    DISH_SELECTIONS_MAX,
     FAT_DISH,
     FAT_MAX,
     FAT_MIN,
@@ -92,5 +93,6 @@ def get_diet_info_data() -> pd.DataFrame:
         FAT_MAX: 4000,
         VEGETARIAN: 0,
         VEGAN: 0,
+        DISH_SELECTIONS_MAX: 2,
     }
     return pd.DataFrame.from_dict([diet_information])
